@@ -67,3 +67,7 @@ Errors      [count]                       12
 
 * Use `context.Context` to be able to stop execution using `ctx.Done`
 
+## Licence
+
+MIT License
+
