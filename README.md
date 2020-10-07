@@ -1,9 +1,16 @@
-# timer
+# timer [![GoDoc](https://godoc.org/github.com/jcuvillier/timer?status.svg)](https://godoc.org/github.com/jcuvillier/timer)
+
 Timer a utility package to time function for performance tests.
 
 ```
 go get github.com/jcuvillier/timer
 ```
+
+Timer can execute a given function (`func() error`) a given number of times with parallelism.  
+Executions are timed and a `Report` is returned.  
+
+This report can be used to get statistics such as *min*, *max*, *mean* and *quantiles*.  
+Also report can be printed out in a given `io.writer`. (See example below)
 
 ## Example
 
@@ -36,7 +43,7 @@ func main() {
 	r.Print(os.Stdout)
 }
 ```
-Prints:
+Output
 ```
 Executions  [total, durations, rate]      100 10.4027215s 9.61
 Durations   [min, mean, 50, 90, 99, max]  100.0798ms 511.142199ms 500.1322ms, 1.0001331s, 1.0002159s, 1.0002159s
@@ -55,4 +62,8 @@ Errors      [count]                       12
    looks like this is an error
    looks like this is an error
 ```
+
+## Roadmap
+
+* Use `context.Context` to be able to stop execution using `ctx.Done`
 
