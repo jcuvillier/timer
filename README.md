@@ -28,6 +28,9 @@ import (
 )
 
 func main() {
+	// Create function to test
+	// This function will sleep 100ms + x*100ms, x being picked randomly between 0 and 10
+	// If x equals 0, an error is raised to show how error are handled
 	f := func() error {
 		rnd := rand.Int63n(10)
 		time.Sleep(100*time.Millisecond + time.Duration(rnd)*100*time.Millisecond)
@@ -36,12 +39,15 @@ func main() {
 		}
 		return nil
 	}
+	// Execute the function 100 times with a parallelism of 5
 	r, err := timer.Run(f, 100, 5)
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Print report to stdout
 	r.Print(os.Stdout)
 }
+
 ```
 Output
 ```
