@@ -14,6 +14,8 @@ Also report can be printed out in a given `io.writer`. (See example below)
 
 ## Example
 
+### Regular case
+
 ```golang
 package main
 
@@ -68,10 +70,37 @@ Errors      [count]                       12
    looks like this is an error
    looks like this is an error
 ```
+### With timeout
 
-## Roadmap
+The `context.Context` can be used to stop the execution by cancelling the context, for instance with a timeout.
 
-* Use `context.Context` to be able to stop execution using `ctx.Done`
+```golang
+// Execute the function indefinitely with a parallelism of 5
+// A context with timeout will interrupt the execution after 5 seconds
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+r, err := timer.Run(ctx, f, 0, 5)
+if err != nil {
+	log.Fatal(err)
+}
+// Print report to stdout
+r.Print(os.Stdout)
+```
+Output
+```
+Executions  [total, durations, rate]      47 5.0001797s 9.40
+Durations   [min, mean, 50, 90, 99, max]  100.0572ms 491.611323ms 400.1454ms, 900.1604ms, 1.0001512s, 1.0001512s
+Success     [ratio]                       85.11 %
+Errors      [count]                       7
+   looks like this is an error
+   looks like this is an error
+   looks like this is an error
+   looks like this is an error
+   looks like this is an error
+   looks like this is an error
+   looks like this is an error
+```
+
 
 ## Licence
 

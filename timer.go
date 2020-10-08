@@ -1,11 +1,11 @@
 package timer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"sort"
-	"sync"
 	"text/tabwriter"
 	"time"
 )
@@ -19,49 +19,44 @@ type Report struct {
 }
 
 // Run executes the given function *n* times concurently with a parallelism of *p*.
+// The executions can also be stopped by cancelling the context.
 //
-// *n* and *p* must be positive and *n* greater than *p*
+// A negative or zero *n* means infitnite loop.
+// Note that this mode is meant to be used with a cancellable context.
+//
+// *p* must be positive
 //
 // Each execution is timed and potential errors saved in the returned report.
 // Total execution time is also saved in the report.
-func Run(f func() error, n, p int) (*Report, error) {
+func Run(ctx context.Context, f func() error, n, p int) (*Report, error) {
 	// Check arguments
-	if n <= 0 {
-		return nil, errors.New("n must be positive")
-	}
 	if p <= 0 {
 		return nil, errors.New("p must be positive")
 	}
-	if n < p {
-		return nil, errors.New("n must be greater or equal than p")
-	}
 
 	// Prepare execution and report
-	wg := &sync.WaitGroup{}
-	wg.Add(n)
 	r := &Report{
-		num:       n,
-		durations: make([]time.Duration, 0, n),
-		errs:      make([]error, 0, n),
+		durations: []time.Duration{},
+		errs:      []error{},
 	}
 	poolC := make(chan bool, p)      // Buffered channel used as a pool to control the concurrency
 	durC := make(chan time.Duration) // Channel to get durations from execution go routines
 	errC := make(chan error)         // Channel to get errors from execution go routines
 	doneC := make(chan bool)         // Channel to control end of execution
+	k := 0
 
 	// Start the executions
 	startT := time.Now()
 	go func() {
-		for i := 0; i < n; i++ {
+		i := 0
+		for {
+			if n > 0 && i > n {
+				fmt.Println("HERE")
+				break
+			}
 			poolC <- true
-			go execAndTimeFunction(f, durC, errC, poolC, wg)
+			go execAndTimeFunction(f, durC, errC, poolC, doneC)
 		}
-	}()
-
-	// Wait for completion
-	go func() {
-		wg.Wait()
-		doneC <- true
 	}()
 
 	// Read channels and save results
@@ -73,10 +68,16 @@ L:
 		case err := <-errC:
 			r.errs = append(r.errs, err)
 		case <-doneC:
+			k = k + 1
+			if n > 0 && k >= n {
+				break L
+			}
+		case <-ctx.Done():
 			break L
 		}
 	}
 	r.total = time.Since(startT)
+	r.num = k
 
 	// Sort r.durations before returning
 	sort.Slice(r.durations, func(i, j int) bool { return r.durations[i] < r.durations[j] })
@@ -87,7 +88,7 @@ L:
 //
 // the execution is timed and its duration is sent into the durC channel
 // potential error is sent to errC channel
-func execAndTimeFunction(f func() error, durC chan time.Duration, errC chan error, poolC chan bool, wg *sync.WaitGroup) {
+func execAndTimeFunction(f func() error, durC chan time.Duration, errC chan error, poolC chan bool, doneC chan bool) {
 	// Execute f and get send its duration to durC
 	startT := time.Now()
 	err := f()
@@ -98,9 +99,9 @@ func execAndTimeFunction(f func() error, durC chan time.Duration, errC chan erro
 		errC <- err
 	}
 
-	// Handle pool channel and wait group
+	// Handle pool and done channel
 	<-poolC
-	wg.Done()
+	doneC <- true
 }
 
 // Executions returns the total number of execution done
