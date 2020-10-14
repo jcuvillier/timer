@@ -24,7 +24,7 @@ func main() {
 		return nil
 	}
 	// Execute the function 100 times with a parallelism of 5
-	r, err := timer.Run(context.Background(), f, -1, 5)
+	r, err := timer.Run(context.Background(), f, 100, 5)
 	if err != nil {
 		log.Fatal(err)
 	}
