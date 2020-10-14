@@ -51,7 +51,6 @@ func Run(ctx context.Context, f func() error, n, p int) (*Report, error) {
 		i := 0
 		for {
 			if n > 0 && i > n {
-				fmt.Println("HERE")
 				break
 			}
 			poolC <- true
@@ -145,6 +144,11 @@ func (r *Report) Quantile(q int) time.Duration {
 	}
 	index := q * len(r.durations) / 100
 	return r.durations[index]
+}
+
+// Errors returns thrown errors
+func (r *Report) Errors() []error {
+	return r.errs
 }
 
 // Print write a report in the given writer.
